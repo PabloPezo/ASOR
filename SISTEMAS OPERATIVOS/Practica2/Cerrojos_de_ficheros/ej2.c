@@ -1,84 +1,41 @@
+
+
 #include <stdio.h>
-#include <fcntl.h>
+#include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <time.h>
-#include <string.h>
 
-int main(int argc, char ** argv) {
+int main()
+{
+    int df=open("/home/usuarioso/Descargas/PR2/ficheros_p2/student-records/hola.txt", O_RDWR);
+    struct stat hola;
+    fstat(df, &hola);
+    int a = hola.st_size;
 
-
-  if (argc < 2) {
-     printf("ERROR: Se debe especeficar la ruta del archivo en los parámetros del programa.\n");
-     return -1;
-  }
-
-  int fd = open(argv[1], O_CREAT | O_RDWR, 00777);
-  if (fd == -1) {
-    printf("ERROR: No se ha podido abrir/crear el fichero.\n");
-    return -1;
-  }
-
-  struct flock lock;
-
-  lock.l_type = F_UNLCK;
-  lock.l_whence = SEEK_SET;
-  lock.l_start = 0;
-  lock.l_len = 0;
-  lock.l_pid = getpid();
-
-
-  int status = fcntl(fd, F_GETLK, &lock);
-
-  if (lock.l_type == F_UNLCK) {
-    printf("STATUS: Cerrojo desbloqueado.\n");
-    lock.l_type = F_WRLCK;
-    lock.l_whence = SEEK_SET;
-    lock.l_start = 0;
-    lock.l_len = 0;
-    lock.l_pid = getpid();
-
-    if (fcntl(fd, F_GETLK, &lock) == -1) {
-      printf("ERROR:No se ha podido crear el cerrojo.\n");
-      close(fd);
-      return 1;
-    } else {
-      printf("STATUS: Creado cerrojo de escritura\n");
-
-      //Write Date
-      time_t tim = time(NULL);
-
-      struct tm *tm = localtime(&tim);
-
-      char buffer[1024];
-
-      sprintf (buffer, "Hora: %d:%d\n", tm->tm_hour, tm->tm_min);
-
-      write(fd, &buffer, strlen(buffer));
-
-
-      sleep(30);
-
-      lock.l_type = F_WRLCK;
-      lock.l_whence = SEEK_SET;
-      lock.l_start = 0;
-      lock.l_len = 0;
-      lock.l_pid = getpid();
-      
-      if (fcntl(fd, F_GETLK, &lock) == -1) {
-        printf("ERROR:No se ha podido crear el cerrojo.\n");
-        close(fd);
-        return 1;
-      } else
-      close(fd);
+    if(lockf(df, F_LOCK, a) == -1)
+    {
+        perror("Se ");
     }
+  time_t t;
+  struct tm * tInfo;
+  char buffer[80];
 
-  } else {
-    printf("STATUS: Cerrojo bloqueado.\n");
-    close(fd);
-    return 1;
-  }
+  time ( &t );
+  tInfo = localtime ( &t );
 
-  close(fd);
+  strftime(buffer,80,"%A, %d de %B de %Y, %H:%M", tInfo);
+  
+  printf("Fecha y hora (en ingles) : %s\n", buffer );
+    sleep(10);
 
-
+        if(lockf(df, F_ULOCK, a) == -1)
+    {
+        perror("Se ");
+    }
+    sleep(10);
+     return 1;
 }
